@@ -28,8 +28,6 @@ private:
     void createNode(int level, Node<T> *&node);          // create a new node only with level
     void createNode(int level, Node<T> *&node, T data);  // create a new node with level, key and value
     int getRandomLevel();
-    void dumpAllNodes();
-    void dumpNodeDetail(Node<T> *node, int nodeLevel);
 private:
     int level;      // the max level of current nodes(1 ~ MAX_LEVEL)
     Node<T> *head;  // head node of the skip list
@@ -52,10 +50,10 @@ SkipList<T>::SkipList(T footData)
 template<class T>
 SkipList<T>::~SkipList()
 {
-    Node<T> *p = head;
+    Node<T> *p = head;  // delete from head node
     Node<T> *q;
     while (p != NULL)
-    {
+    {   // delete the node using the lower layer
         q = p->forward[0];
         delete p;
         p = q;
@@ -125,37 +123,9 @@ bool SkipList<T>::insert(T data) {
         newNode->forward[i] = node->forward[i];
         node->forward[i] = newNode;
     }
-    nodeCount++;
-
-#ifdef DEBUG
-    dumpAllNodes();
-#endif
-
+    nodeCount++;  // update the new node number
     return true;
 };
-
-template<class T>
-void SkipList<T>::dumpAllNodes()
-{
-    Node<T> *tmp = head;
-    while (tmp->forward[0] != foot)
-    {
-        tmp = tmp->forward[0];
-        dumpNodeDetail(tmp, tmp->nodeLevel);
-        cout << "----------------------------" << endl;
-    }
-    cout << endl;
-}
-
-template<class T>
-void SkipList<T>::dumpNodeDetail(Node<T> *node, int nodeLevel)
-{
-    if (node == nullptr)
-        return;
-    cout << "node->data:" << node->data << endl;
-    for (int i = 0; i <= nodeLevel; ++i)
-        cout << "forward[" << i << "]:" << "data:" << node->forward[i]->data << endl;
-}
 
 template<class T>
 bool SkipList<T>::remove(T data)
@@ -163,14 +133,14 @@ bool SkipList<T>::remove(T data)
     Node<T> *update[MAX_LEVEL];
     Node<T> *node = head;
     for (int i = level; i >= 0; i--)
-    {
+    {   // find the node to be inserted
         while (node->forward[i]->data < data)
             node = node->forward[i];
         update[i] = node;
     }
     node = node->forward[0];
     if (node->data != data)
-        return false;
+        return false;  // return false if data not found
 
     data = node->data;
     for (int i = 0; i <= level; i++)
@@ -182,12 +152,7 @@ bool SkipList<T>::remove(T data)
     delete node;  // delete the node
     while (level > 0 && head->forward[level] == foot)
         level--;  // update level if needed
-    nodeCount--;
-
-#ifdef DEBUG
-    dumpAllNodes();
-#endif
-
+    nodeCount--;  // update the new node number
     return true;
 };
 

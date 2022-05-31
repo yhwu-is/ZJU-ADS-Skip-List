@@ -4,49 +4,41 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    cout << "skiplist test now starts..." << endl;
+    cout << "Start skiplist test..." << endl;
 
     //给一个最大的整型值
-    SkipList<int, int> skipList(0x7fffffff);
+    SkipList<int> skipList(0x7fffffff);
 
     int length = 10;
 
-    for (int i = 1; i <= length; ++i) {
-        skipList.insert(i, i + 200);
-    }
+    for (int i = 1; i <= length; i++)
+        skipList.insert(i);
 
     cout << "The number of elements in skiplist is:" << skipList.size() << endl;
 
-    if (skipList.size() != length) {
+    if (skipList.size() != length)
         cout << "insert failure." << endl;
-    } else {
+    else
         cout << "insert success." << endl;
-    }
 
     //测试查找
-    int value = -1;
-    int key = 9;
-    Node<int, int> *searchResult = skipList.search(key);
+    int data = 9;
+    Node<int> *searchResult = skipList.search(data);
     if (searchResult != nullptr) {
-        value = searchResult->getValue();
-        cout << "search result for key " << key << ":" << value << endl;
+        data = searchResult->getData();
+        cout << "search result for data " << data << endl;
     } else {
-        cout << "search failure for key " << key << endl;
+        cout << "search failure for data " << data << endl;
     }
 
-    //重置value
-    value = -1;
-
     //测试移除,测试不通过
-    key = 6;
-    cout<<endl<<"start to remove"<<endl;
-    bool removeResult = skipList.remove(key, value);
+    data = 6;
+    cout << endl << "start to remove" << endl;
+    bool removeResult = skipList.remove(data);
     if (removeResult) {
-        cout << "removed node whose key is " << key << " and value is " << value << endl;
+        cout << "removed node whose data is " << data << endl;
     } else {
         cout << "removed failure" << endl;
     }
-
-
     return 0;
 }

@@ -2,58 +2,60 @@
 #define _SKIPLIST_H
 
 #include <iostream>
+#include <random>
+#include <cmath>
 #include <cassert>
 #include <ctime>
 #include "Node.h"
-#include "Rand.h"
 
 using namespace std;
 
-#define DEBUG
+// #define DEBUG
 #define MAX_LEVEL 16
 
-template<class K, class V>
-class SkipList {
+template<class T>
+class SkipList
+{
 public:
-    SkipList(K FootKey);  // initialize a skip list
-    ~SkipList();            // remove a skip list
-    Node<K, V> *search(K key) const;  // search operation for skip list
-    bool insert(K key, V value);      // insert operation for skip list
-    bool remove(K key, V &value);     // delete operation for skip list
+    SkipList(T footData);    // initialize a skip list
+    ~SkipList();             // remove a skip list
+    Node<T> *search(T data) const;  // search operation for skip list
+    bool insert(T data);      // insert operation for skip list
+    bool remove(T data);      // delete operation for skip list
     int size() { return nodeCount; }
     int getLevel() { return level; }
 private:
-    void createNode(int level, Node<K, V> *&node);                  // create a new node only with level
-    void createNode(int level, Node<K, V> *&node, K key, V value);  // create a new node with level, key and value
+    void createNode(int level, Node<T> *&node);          // create a new node only with level
+    void createNode(int level, Node<T> *&node, T data);  // create a new node with level, key and value
     int getRandomLevel();
     void dumpAllNodes();
-    void dumpNodeDetail(Node<K, V> *node, int nodeLevel);
+    void dumpNodeDetail(Node<T> *node, int nodeLevel);
 private:
-    int level;
-    Node<K, V> *head;
-    Node<K, V> *foot;
+    int level;      // the max level of current nodes(1 ~ MAX_LEVEL)
+    Node<T> *head;  // head node of the skip list
+    Node<T> *foot;  // tail node of the skip list
     unsigned long long nodeCount;
-    Rand rand;
 };
 
-template<class K, class V>
-SkipList<K, V>::SkipList(K footKey) : rand(0x12345678) {
-    createNode(0, foot);
-
-    foot->key = footKey;
+template<class T>
+SkipList<T>::SkipList(T footData)
+{
+    createNode(0, foot);  // set up the first node
+    foot->data = footData;
     this->level = 0;
-    //设置头结
-    createNode(MAX_LEVEL, head);
+    createNode(MAX_LEVEL, head);  // set up the head node
     for (int i = 0; i < MAX_LEVEL; i++)
         head->forward[i] = foot;
     nodeCount = 0;
 }
 
-template<class K, class V>
-SkipList<K, V>::~SkipList() {
-    Node<K, V> *p = head;
-    Node<K, V> *q;
-    while (p != NULL) {
+template<class T>
+SkipList<T>::~SkipList()
+{
+    Node<T> *p = head;
+    Node<T> *q;
+    while (p != NULL)
+    {
         q = p->forward[0];
         delete p;
         p = q;
@@ -61,76 +63,69 @@ SkipList<K, V>::~SkipList() {
     delete p;
 }
 
-template<class K, class V>
-void SkipList<K, V>::createNode(int level, Node<K, V> *&node) {
-    node = new Node<K, V>(NULL, NULL);
-    node->forward = new Node<K, V> *[level + 1];  // need to initialize the forward node array
+template<class T>
+void SkipList<T>::createNode(int level, Node<T> *&node)
+{
+    node = new Node<T>(0);
+    assert(node != NULL);                      // judge if new successfully
+    node->forward = new Node<T> *[level + 1];  // need to initialize the forward node array
     node->nodeLevel = level;
-    assert(node != NULL);
 };
 
-template<class K, class V>
-void SkipList<K, V>::createNode(int level, Node<K, V> *&node, K key, V value) {
-    node = new Node<K, V>(key, value);
-    if (level > 0)  // need to initialize the forward node array
-        node->forward = new Node<K, V> *[level + 1];
+template<class T>
+void SkipList<T>::createNode(int level, Node<T> *&node, T data)
+{
+    node = new Node<T>(data);                      // construct the new node with key and value
+    assert(node != NULL);                          // judge if new successfully
+    if (level > 0)
+        node->forward = new Node<T> *[level + 1];  // need to initialize the forward node array
     node->nodeLevel = level;
-    assert(node != NULL);
 };
 
-template<class K, class V>
-Node<K, V> *SkipList<K, V>::search(const K key) const {
-    Node<K, V> *node = head;
-    for (int i = level; i >= 0; --i) {
-        while ((node->forward[i])->key < key) {
-            node = *(node->forward + i);
-        }
-    }
+template<class T>
+Node<T> *SkipList<T>::search(const T data) const {
+    Node<T> *node = head;                      // start search from the head node
+    for (int i = level; i >= 0; i--)           // search from top down
+        while (node->forward[i]->data < data)  // if the forward number is still less than the key
+            node = node->forward[i];           // keep the level and go forward
     node = node->forward[0];
-    if (node->key == key)
-        return node;
-    else
-        return nullptr;
+    if (node->data == data)                    // it means the key is found
+        return node;                           // return the correspond node
+    else                                       // it means the key is not found
+        return nullptr;                        // return null pointer
 };
 
-template<class K, class V>
-bool SkipList<K, V>::insert(K key, V value) {
-    Node<K, V> *update[MAX_LEVEL];
+template<class T>
+bool SkipList<T>::insert(T data) {
+    Node<T> *update[MAX_LEVEL];
+    Node<T> *node = head;
 
-    Node<K, V> *node = head;
-
-    for (int i = level; i >= 0; --i) {
-        while ((node->forward[i])->key < key) {
+    for (int i = level; i >= 0; i--)
+    {   // find the position to be inserted
+        while (node->forward[i]->data < data)
             node = node->forward[i];
-        }
-        update[i] = node;
+        update[i] = node;     // reserve the node that might have pointers to be update
     }
-    //首个结点插入时，node->forward[0]其实就是foot
     node = node->forward[0];
-
-    //如果key已存在，则直接返回false
-    if (node->key == key) {
-        return false;
+    if (node->data == data)
+        return false;         // return false if the key is already exist
+    
+    int nodeLevel = getRandomLevel();  // get random new level of the new node
+    if (nodeLevel > level)
+    {   // it means we need to update the level of the skip list
+        nodeLevel = ++level;       // the level increase only by 1 even though the random number larger than (level + 1)
+        update[nodeLevel] = head;  // and we need to update head node in this level
     }
 
-    int nodeLevel = getRandomLevel();
-
-    if (nodeLevel > level) {
-        nodeLevel = ++level;
-        update[nodeLevel] = head;
-    }
-
-    //创建新结点
-    Node<K, V> *newNode;
-    createNode(nodeLevel, newNode, key, value);
-
-    //调整forward指针
-    for (int i = nodeLevel; i >= 0; --i) {
+    Node<T> *newNode;
+    createNode(nodeLevel, newNode, data);  // create the new node
+    for (int i = nodeLevel; i >= 0; i--)
+    {   // update the forward pointer of nodes in update[]
         node = update[i];
         newNode->forward[i] = node->forward[i];
         node->forward[i] = newNode;
     }
-    ++nodeCount;
+    nodeCount++;
 
 #ifdef DEBUG
     dumpAllNodes();
@@ -139,10 +134,12 @@ bool SkipList<K, V>::insert(K key, V value) {
     return true;
 };
 
-template<class K, class V>
-void SkipList<K, V>::dumpAllNodes() {
-    Node<K, V> *tmp = head;
-    while (tmp->forward[0] != foot) {
+template<class T>
+void SkipList<T>::dumpAllNodes()
+{
+    Node<T> *tmp = head;
+    while (tmp->forward[0] != foot)
+    {
         tmp = tmp->forward[0];
         dumpNodeDetail(tmp, tmp->nodeLevel);
         cout << "----------------------------" << endl;
@@ -150,52 +147,42 @@ void SkipList<K, V>::dumpAllNodes() {
     cout << endl;
 }
 
-template<class K, class V>
-void SkipList<K, V>::dumpNodeDetail(Node<K, V> *node, int nodeLevel) {
-    if (node == nullptr) {
+template<class T>
+void SkipList<T>::dumpNodeDetail(Node<T> *node, int nodeLevel)
+{
+    if (node == nullptr)
         return;
-    }
-    cout << "node->key:" << node->key << ",node->value:" << node->value << endl;
-    //注意是i<=nodeLevel而不是i<nodeLevel
-    for (int i = 0; i <= nodeLevel; ++i) {
-        cout << "forward[" << i << "]:" << "key:" << node->forward[i]->key << ",value:" << node->forward[i]->value
-             << endl;
-    }
+    cout << "node->data:" << node->data << endl;
+    for (int i = 0; i <= nodeLevel; ++i)
+        cout << "forward[" << i << "]:" << "data:" << node->forward[i]->data << endl;
 }
 
-template<class K, class V>
-bool SkipList<K, V>::remove(K key, V &value) {
-    Node<K, V> *update[MAX_LEVEL];
-    Node<K, V> *node = head;
-    for (int i = level; i >= 0; --i) {
-        while ((node->forward[i])->key < key) {
+template<class T>
+bool SkipList<T>::remove(T data)
+{   // the search part is the same as insert
+    Node<T> *update[MAX_LEVEL];
+    Node<T> *node = head;
+    for (int i = level; i >= 0; i--)
+    {
+        while (node->forward[i]->data < data)
             node = node->forward[i];
-        }
         update[i] = node;
     }
     node = node->forward[0];
-    //如果结点不存在就返回false
-    if (node->key != key) {
+    if (node->data != data)
         return false;
-    }
 
-    value = node->value;
-    for (int i = 0; i <= level; ++i) {
-        if (update[i]->forward[i] != node) {
+    data = node->data;
+    for (int i = 0; i <= level; i++)
+    {   // reverse the update process of insert
+        if (update[i]->forward[i] != node)         // it means this value don't need to update
             break;
-        }
         update[i]->forward[i] = node->forward[i];
     }
-
-    //释放结点
-    delete node;
-
-    //更新level的值，因为有可能在移除一个结点之后，level值会发生变化，及时移除可避免造成空间浪费
-    while (level > 0 && head->forward[level] == foot) {
-        --level;
-    }
-
-    --nodeCount;
+    delete node;  // delete the node
+    while (level > 0 && head->forward[level] == foot)
+        level--;  // update level if needed
+    nodeCount--;
 
 #ifdef DEBUG
     dumpAllNodes();
@@ -204,13 +191,15 @@ bool SkipList<K, V>::remove(K key, V &value) {
     return true;
 };
 
-template<class K, class V>
-int SkipList<K, V>::getRandomLevel() {
-    int level = static_cast<int>(rand.Uniform(MAX_LEVEL));
-    if (level == 0) {
-        level = 1;
-    }
-    return level;
+template<class T>
+int SkipList<T>::getRandomLevel()
+{   // get random level that satisfy geometry distribution(with p = 1/2)
+    default_random_engine generator;
+	geometric_distribution<int> distribution(0.5);
+	int ret = distribution(generator) + 1;  // get number that obeys geometry distribution
+    if (ret > MAX_LEVEL)
+        ret = MAX_LEVEL;                    // restrict to MAX_LEVEL
+    return ret;
 }
 
 #endif

@@ -1,13 +1,14 @@
 #ifndef _RAND_H
 #define _RAND_H
 
-class Rand {
+class Rand
+{
 public:
-    explicit Rand(unsigned int s) : seed(s & 0x7fffffffu) {
+    explicit Rand(unsigned int s) : seed(s & 0x7fffffffu)
+    {
         // Avoid bad seeds.
-        if (seed == 0 || seed == 2147483647L) {
+        if (seed == 0 || seed == 2147483647L)
             seed = 1;
-        }
     }
 
     unsigned int Next() {
@@ -46,7 +47,6 @@ public:
     unsigned int Skewed(int max_log) {
         return Uniform(1 << Uniform(max_log + 1));
     }
-
 private:
     unsigned int seed;
 };

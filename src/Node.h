@@ -1,23 +1,22 @@
 #ifndef _NODE_H
 #define _NODE_H
 
-template<class K, class V>
+template<class T>
 class SkipList;  // forward declaration
 
-template<class K, class V>
-class Node {
+template<class T>
+class Node
+{
 public:
     Node() {}
-    Node(K k, V v) : key(k), value(v) {}
+    Node(T d) : data(d) {}
     ~Node() { delete[] forward; }
-    K getKey() const { return key; }
-    V getValue() const { return value; }
+    T getData() const { return data; }
 private:
-    K key;
-    V value;
-    Node<K, V> **forward;
+    T data;
     int nodeLevel;
-    friend class SkipList<K, V>;
+    Node<T> **forward;
+    friend class SkipList<T>;
 };
 
 #endif
